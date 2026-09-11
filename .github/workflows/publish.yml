@@ -1,0 +1,39 @@
+name: Publish chart update
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - .github/workflows/publish.yml
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: hyperliquid-collector
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - name: Assemble existing snapshot and updated chart
+        run: |
+          mkdir -p public/data
+          cp index.html public/index.html
+          cp data/history.json data/latest.json public/data/
+          if [ -f data/candles.json ]; then cp data/candles.json public/data/; fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4
